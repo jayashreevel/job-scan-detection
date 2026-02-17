@@ -22,8 +22,19 @@ CREATE TABLE IF NOT EXISTS reports (
 conn.commit()
 
 # ---------------- LOAD ML MODEL ----------------
-model = pickle.load(open("job_model.pkl", "rb"))
-vectorizer = pickle.load(open("vectorizer.pkl", "rb"))
+import os
+import pickle
+from ml_model import train_model
+
+MODEL_PATH = "job_model.pkl"
+VECTORIZER_PATH = "vectorizer.pkl"
+
+if not os.path.exists(MODEL_PATH) or not os.path.exists(VECTORIZER_PATH):
+    print("Training model for first time...")
+    model, vectorizer = train_model()
+else:
+    model = pickle.load(open(MODEL_PATH, "rb"))
+    vectorizer = pickle.load(open(VECTORIZER_PATH, "rb"))
 
 def ml_prediction(text):
     vec = vectorizer.transform([text])
