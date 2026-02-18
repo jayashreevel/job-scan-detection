@@ -1,36 +1,46 @@
-import whois
-from datetime import datetime
+import re
+from urllib.parse import urlparse
 
-keyword_weights = {
-    "registration fee": 5,
-    "processing fee": 5,
-    "telegram": 4,
-    "whatsapp": 4,
-    "earn per day": 3,
-    "easy money": 3,
-    "work from home": 2,
-    "no experience": 2
-}
+# Scam keyword list
+SCAM_KEYWORDS = [
+    "registration fee", "pay fee", "earn money fast",
+    "work from home", "limited slots", "urgent hiring",
+    "no interview", "instant joining", "whatsapp only"
+]
 
 def check_keywords(text):
+    text = text.lower()
     score = 0
-    matched = []
-    for word, weight in keyword_weights.items():
-        if word in text.lower():
-            score += weight
-            matched.append(word)
-    return score, matched
+    found = []
 
+    for word in SCAM_KEYWORDS:
+        if word in text:
+            score += 2
+            found.append(word)
+
+    return score, found
 
 def domain_age_check(url):
+    """
+    Simple heuristic:
+    - Short URLs
+    - Free hosting
+    - IP-based URLs
+    """
     try:
-        domain = url.replace("https://", "").replace("http://", "").split("/")[0]
-        w = whois.whois(domain)
-        creation = w.creation_date
-        if isinstance(creation, list):
-            creation = creation[0]
+        domain = urlparse(url).netloc.lower()
 
-        age_days = (datetime.now() - creation).days
-        return age_days < 365
+        suspicious_patterns = [
+            "bit.ly", "tinyurl", "blogspot", "wordpress",
+            "000webhost", "free", ".xyz", ".tk"
+        ]
+
+        if any(p in domain for p in suspicious_patterns):
+            return True
+
+        if re.match(r"\d+\.\d+\.\d+\.\d+", domain):
+            return True
+
+        return False
     except:
         return True
