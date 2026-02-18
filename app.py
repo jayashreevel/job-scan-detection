@@ -1,7 +1,9 @@
 from flask import Flask, request, render_template
-import sqlite3, pickle
+import sqlite3, pickle, os
+
 from analyzer import check_keywords, domain_age_check
 from search import google_search
+from ml_model import train_model
 
 app = Flask(__name__, template_folder="templates")
 
@@ -21,16 +23,11 @@ CREATE TABLE IF NOT EXISTS reports (
 """)
 conn.commit()
 
-# ---------------- LOAD ML MODEL ----------------
-import os
-import pickle
-from ml_model import train_model
-
+# ---------------- MODEL LOAD / TRAIN ----------------
 MODEL_PATH = "job_model.pkl"
 VECTORIZER_PATH = "vectorizer.pkl"
 
 if not os.path.exists(MODEL_PATH) or not os.path.exists(VECTORIZER_PATH):
-    print("Training model for first time...")
     model, vectorizer = train_model()
 else:
     model = pickle.load(open(MODEL_PATH, "rb"))
@@ -46,7 +43,7 @@ def suspicious_email(text):
             return True
     return False
 
-# ---------------- HOME ROUTE ----------------
+# ---------------- HOME ----------------
 @app.route("/", methods=["GET", "POST"])
 def home():
     result = ""
@@ -60,14 +57,14 @@ def home():
 
         text = f"{title} {desc} {url}"
 
-        score, matched = check_keywords(text)
+        score, _ = check_keywords(text)
         domain_risk = domain_age_check(url)
         email_risk = suspicious_email(text)
         ml_prob = ml_prediction(text)
 
         if score >= 7 or ml_prob > 0.75:
             result = "❌ FAKE JOB"
-            reason = f"High risk detected ({int(ml_prob*100)}%)"
+            reason = f"High scam probability ({int(ml_prob*100)}%)"
         elif domain_risk or email_risk:
             result = "⚠ HIGH RISK JOB"
             reason = "Suspicious domain or email detected"
@@ -85,13 +82,13 @@ def home():
 
     return render_template("index.html", result=result, reason=reason, links=links)
 
-# ---------------- REPORTS ROUTE (DATABASE VIEW) ----------------
+# ---------------- REPORTS ----------------
 @app.route("/reports")
 def view_reports():
     cursor.execute("SELECT * FROM reports ORDER BY id DESC")
     data = cursor.fetchall()
     return render_template("reports.html", reports=data)
 
-# ---------------- RUN APP ----------------
+# ---------------- RUN ----------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
