@@ -1,46 +1,29 @@
 import re
-from urllib.parse import urlparse
+import whois
+from datetime import datetime
 
-# Scam keyword list
-SCAM_KEYWORDS = [
-    "registration fee", "pay fee", "earn money fast",
-    "work from home", "limited slots", "urgent hiring",
-    "no interview", "instant joining", "whatsapp only"
+SCAM_WORDS = [
+    "registration fee", "pay upfront", "whatsapp interview",
+    "no interview", "easy money", "telegram"
 ]
 
 def check_keywords(text):
-    text = text.lower()
     score = 0
     found = []
-
-    for word in SCAM_KEYWORDS:
-        if word in text:
+    for word in SCAM_WORDS:
+        if word in text.lower():
             score += 2
             found.append(word)
-
     return score, found
 
 def domain_age_check(url):
-    """
-    Simple heuristic:
-    - Short URLs
-    - Free hosting
-    - IP-based URLs
-    """
     try:
-        domain = urlparse(url).netloc.lower()
-
-        suspicious_patterns = [
-            "bit.ly", "tinyurl", "blogspot", "wordpress",
-            "000webhost", "free", ".xyz", ".tk"
-        ]
-
-        if any(p in domain for p in suspicious_patterns):
-            return True
-
-        if re.match(r"\d+\.\d+\.\d+\.\d+", domain):
-            return True
-
-        return False
+        domain = re.sub(r"https?://", "", url).split("/")[0]
+        w = whois.whois(domain)
+        creation = w.creation_date
+        if isinstance(creation, list):
+            creation = creation[0]
+        age = (datetime.now() - creation).days
+        return age < 180
     except:
         return True
