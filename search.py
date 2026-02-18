@@ -1,33 +1,38 @@
-import re
-
 def google_search(text):
     """
-    Offline heuristic-based search simulation
-    (Safe for cloud deployment)
+    Offline heuristic-based job scam signal checker
+    Safe for Render / cloud deployment
     """
 
     text = text.lower()
 
     suspicious_signals = [
         "telegram",
-        "whatsapp only",
+        "whatsapp",
+        "dm me",
         "pay registration",
+        "registration fee",
+        "processing fee",
         "no interview",
         "quick money",
+        "earn daily",
         "limited slots",
-        "dm me",
-        "processing fee"
+        "work from home",
+        "contact immediately",
+        "join fast",
+        "guaranteed income"
     ]
 
-    found = []
-    for word in suspicious_signals:
-        if word in text:
-            found.append(word)
+    detected = []
 
-    if found:
+    for signal in suspicious_signals:
+        if signal in text:
+            detected.append(signal)
+
+    if detected:
         return {
             "risk": "High",
-            "signals": found
+            "signals": detected
         }
     else:
         return {
